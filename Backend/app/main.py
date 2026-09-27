@@ -9,6 +9,7 @@ from sqlalchemy import text
 from app.agents.note_agent import AgentConfigurationError
 from app.api.routes.cards import router as cards_router
 from app.api.routes.notes import router as notes_router
+from app.api.routes.dependencies import router as dependencies_router
 from app.api.routes.review_flags import router as review_flags_router
 from app.core.config import get_settings
 from app.db.session import engine
@@ -45,3 +46,4 @@ async def handle_agent_configuration_error(
 app.include_router(notes_router, prefix="/api")
 app.include_router(cards_router, prefix="/api")
 app.include_router(review_flags_router, prefix="/api")
+app.include_router(dependencies_router, prefix="/api")

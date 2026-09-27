@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
-
+from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, Enum, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,6 +18,9 @@ class CardType(StrEnum):
 class CardStatus(StrEnum):
     OPEN = "open"
     DONE = "done"
+    AT_RISK = "at_risk"              
+    BLOCKED = "blocked"               
+    VERIFIED_CLOSED = "verified_closed"
 
 
 class Card(Base):
@@ -48,6 +51,11 @@ class Card(Base):
         default=CardStatus.OPEN,
         server_default=CardStatus.OPEN.value,
         nullable=False,
+    )
+    risk_reason: Mapped[str | None] = mapped_column(
+        String(500), 
+        nullable=True,
+        comment="Reason why this card is at risk"
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

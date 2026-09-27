@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { CardDependencies } from './components/CardDependencies'
 import './App.css'
 
 type CardType = 'medication' | 'test' | 'referral' | 'next_visit' | 'general_task'
@@ -10,7 +11,8 @@ type Card = {
   type: CardType
   description: string
   description_plain: string | null
-  status: 'open' | 'done'
+  status: 'open' | 'done' | 'at_risk' | 'blocked' | 'verified_closed'
+  risk_reason: string | null
   created_at: string
 }
 
@@ -44,7 +46,17 @@ function formatDate(value: string): string {
 
 function CardBody({ card }: { card: Card }) {
   const [showClinical, setShowClinical] = useState(false)
+  const [dependencies, setDependencies] = useState<any[]>([])
+  
   const hasPlainVersion = card.description_plain !== null && card.description_plain !== ''
+
+  useEffect(() => {
+    // Fetch dependencies for this card
+    fetch(`${apiUrl}/cards/${card.id}/dependencies`)
+      .then(res => res.json())
+      .then(data => setDependencies(data.dependencies || []))
+      .catch(err => console.error('Error fetching dependencies:', err))
+  }, [card.id])
 
   return (
     <>
@@ -64,10 +76,28 @@ function CardBody({ card }: { card: Card }) {
           {showClinical && <p className="card-clinical">{card.description}</p>}
         </div>
       )}
+      
+      <CardDependencies
+          cardId={card.id}
+          dependencies={dependencies}
+          isAtRisk={card.status === 'at_risk'}
+          atRiskReason={card.risk_reason}
+          onDependencyCreated={() => {
+            // Refresh entire cards list to get updated statuses
+            fetch(`${apiUrl}/cards`)
+              .then(res => res.json())
+              .then(data => setCards(data))
+          }}
+          onDependencyDeleted={() => {
+            // Refresh entire cards list
+            fetch(`${apiUrl}/cards`)
+              .then(res => res.json())
+              .then(data => setCards(data))
+          }}
+        />
     </>
   )
 }
-
 function App() {
   const [noteText, setNoteText] = useState('')
   const [cards, setCards] = useState<Card[]>([])
@@ -217,8 +247,11 @@ function App() {
                   <CardBody card={card} />
                   <div className="card-meta">
                     <span>{card.status}</span>
+                    {card.status === 'at_risk' && (
+                      <span className="risk-badge">⚠️ At Risk</span>
+                    )}
                     <time dateTime={card.created_at}>{formatDate(card.created_at)}</time>
-                  </div>
+                </div>
                 </li>
               ))}
             </ul>
